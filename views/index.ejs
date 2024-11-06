@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbox</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+<!-- Container -->
+<div id="appbox" class="w-full h-screen">
+    <!-- Name Entry Form -->
+    <div id="nameForm" class="fixed inset-0 flex items-center justify-center bg-gray-100 z-50">
+        <div class="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Welcome to WhatsApp Web</h2>
+            <input id="nameInput" type="text" placeholder="Enter your name to continue" 
+                   class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-green-500"
+                   autocomplete="off">
+            <button id="joinChatButton" 
+                    class="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-medium transition-colors">
+                Start Chatting
+            </button>
+        </div>
+    </div>
+
+    <div id="chatroom" class="hidden h-screen flex flex-col">
+        <!-- Chat Room Header -->
+        <div class="bg-[#075E54] text-white py-4 px-6 flex items-center justify-between shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-semibold">Chat Room</h1>
+                    <div class="text-sm flex items-center gap-2">
+                        <span id="usercount">0</span> online
+                        <span id="typing" class="hidden text-sm">
+                            <span id="typer">someone</span> typing...
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="exitChatButton" 
+                        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#0c7167] transition-colors">
+                    <i class="fas fa-sign-out-alt text-xl"></i>
+                </button>
+                <button id="startVideoButton" 
+                        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#0c7167] transition-colors">
+                    <i class="fas fa-video text-xl"></i>
+                </button>
+                <div class="relative">
+                    <button id="user-dropdown-button" 
+                            class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#0c7167] transition-colors">
+                        <i class="fas fa-ellipsis-v text-xl"></i>
+                    </button>
+                    <div id="user-dropdown" 
+                         class="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg hidden z-50">
+                        <ul id="userlist" class="py-2 px-2 text-gray-700">
+                            <!-- Users will be listed here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chat-box" class="flex-1 overflow-y-auto bg-[#E5DDD5] p-4">
+            <!-- Messages will appear here -->
+        </div>
+
+        <!-- Input Form -->
+        <div class="bg-gray-100 p-4 border-t">
+            <form id="chat-form" class="flex items-center gap-2">
+                <input type="text" id="input" 
+                       class="flex-1 p-3 rounded-full border border-gray-300 focus:outline-none focus:border-green-500" 
+                       placeholder="Type a message" autocomplete="off">
+                <button type="submit" id="submit-button" 
+                        class="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Video Container -->
+        <div id="videoContainer" class="fixed inset-0 bg-black hidden z-50 flex flex-col">
+            <div class="flex-1 relative">
+                <!-- Local Video -->
+                <video id="localVideo" 
+                       class="absolute top-4 right-4 w-32 h-48 object-cover rounded-lg shadow-lg z-10"
+                       autoplay 
+                       playsinline 
+                       muted></video>
+                
+                <!-- Remote Video -->
+                <video id="remoteVideo" 
+                       class="w-full h-full object-cover"
+                       autoplay 
+                       playsinline></video>
+            </div>
+
+            <!-- Video Controls -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+                <div class="flex justify-center items-center gap-6">
+                    <button id="toggleMicButton" 
+                            class="w-14 h-14 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-white transition-colors">
+                        <i class="fas fa-microphone text-xl"></i>
+                    </button>
+                    <button id="toggleVideoButton" 
+                            class="w-14 h-14 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-white transition-colors">
+                        <i class="fas fa-video text-xl"></i>
+                    </button>
+                    <button id="endCallButton" 
+                            class="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-colors">
+                        <i class="fas fa-phone-slash text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call Notification -->
+        <div id="callNotification" 
+             class="hidden fixed top-4 right-4 bg-white p-6 rounded-lg shadow-xl z-50 w-80">
+            <p class="mb-4 font-medium text-center"><span id="callerName"></span> is calling...</p>
+            <div class="flex gap-3">
+                <button id="acceptCallButton" 
+                        class="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center">
+                    <i class="fas fa-phone mr-2"></i> Accept
+                </button>
+                <button id="rejectCallButton" 
+                        class="flex-1 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center">
+                    <i class="fas fa-phone-slash mr-2"></i> Reject
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    let currentUsername = '';
+
+    const inputname = document.querySelector("#nameInput");
+    const joinChatButton = document.querySelector("#joinChatButton");
+    const chatroom = document.querySelector("#chatroom")
+    const appbox = document.querySelector("#nameForm")
+    const userDropdownButton = document.querySelector("#user-dropdown-button");
+    const userDropdown = document.querySelector("#user-dropdown");
+    const userlist = document.querySelector("#userlist");
+    const userCount = document.querySelector("#usercount");
+    const typing = document.querySelector("#typing");
+    const typer = document.querySelector("#typer");
+    const exitChatButton = document.querySelector("#exitChatButton");
+    const nameForm = document.querySelector("#nameForm");
+
+    socket.on("connect_error", (error) => {
+        console.error("Connection error:", error);
+    });
+
+    socket.on("error", (error) => {
+        console.error("Socket error:", error);
+    });
+
+    joinChatButton.addEventListener("click",function(){
+                   
+            if(inputname.value.trim().length>0){
+                appbox.classList.add("hidden");
+                chatroom.classList.remove("hidden");
+
+                currentUsername = inputname.value.trim();
+                console.log(currentUsername);
+
+                socket.emit("join")
+                socket.on("roomname",function(roomname){
+                console.log(roomname)
+                         socket.emit("username",currentUsername)
+
+
+        document.querySelector("#chat-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const input = document.querySelector("#input");
+            
+                socket.emit("message", input.value); // Send message to server
+                input.value = ""; // Clear the input field
+        });
+
+
+        const messagebox = document.querySelector("#chat-box");
+        socket.on("message", function(data) {
+            if (data.id === socket.id) {
+                messagebox.innerHTML += `
+                    <div class="flex justify-end mb-3">
+                        <div class="max-w-[70%] bg-[#DCF8C6] rounded-lg p-3 shadow">
+                            <div class="font-medium text-sm text-green-700 mb-1">${data.name}</div>
+                            <div class="text-gray-800">${data.message}</div>
+                            <div class="text-right text-xs text-gray-500 mt-1">${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
+                        </div>
+                    </div>`;
+            } else {
+                messagebox.innerHTML += `
+                    <div class="flex justify-start mb-3">
+                        <div class="max-w-[70%] bg-white rounded-lg p-3 shadow">
+                            <div class="font-medium text-sm text-blue-700 mb-1">${data.name}</div>
+                            <div class="text-gray-800">${data.message}</div>
+                            <div class="text-right text-xs text-gray-500 mt-1">${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
+                        </div>
+                    </div>`;
+            }
+            messagebox.scrollTop = messagebox.scrollHeight;
+        });
+        
+        userDropdownButton.addEventListener("click", function() {
+    userDropdown.classList.toggle("hidden");
+});
+
+socket.on("users", function(usernames) {
+    userlist.innerHTML = "";
+    userCount.textContent = usernames.length;
+    usernames.forEach(user => {
+        userlist.innerHTML += `<li>${user}</li>`;
+    });
+});
+
+
+const input = document.querySelector("#input");
+let timer;
+
+input.addEventListener("input", function() {
+    socket.emit("typing");
+});
+
+socket.on("typing", function(name) {
+    typer.textContent = name;
+    typing.classList.remove("hidden");
+    clearInterval(timer)
+   timer= setTimeout(() => {
+        typing.classList.add("hidden");
+    }, 2000); // Hide immediately after a brief moment
+});
+                })
+       
+
+
+
+            }  
+             
+
+
+
+            else {
+                socket.emit("disconnect");
+                alert("Enter name first!");
+            }
+            
+            
+         
+        }) 
+
+      
+    </script>
+    <script src="/js/webrtc.js"></script>
+</body>
+</html>
