@@ -1,13 +1,9 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "app.js", 
-        "use": "@vercel/node"
-      }
-    ],
-    "env": {
-      "NODE_ENV": "production"
+  "version": 2,
+  "builds": [
+    {
+      "src": "app.js",
+      "use": "@vercel/node"
     }
-  }
-  
+  ]
+}
