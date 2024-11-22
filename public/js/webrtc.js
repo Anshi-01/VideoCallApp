@@ -21,11 +21,12 @@ const callerNameSpan = document.getElementById('callerName');
 const constraints = {
     audio: true,
     video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        facingMode: 'user' // This will prefer the front camera on mobile
+        width: { min: 640, ideal: 1280 },
+        height: { min: 480, ideal: 720 },
+        facingMode: "user"
     }
 };
+
 
 // Function to handle starting video
 async function startVideo() {
